@@ -10,13 +10,12 @@ import Foundation
     
     public var debugDescription: String {
         switch self {
-        case .idle: return "@rest, doors closed"
-        case .opened: return "@rest, doors opened"
+        case .idle:       return "@rest, doors closed"
+        case .opened:     return "@rest, doors opened"
         case .movingDown: return "moving down"
-        case .movingUp: return "moving up"
-        case .opening: return "@rest, doors opening"
-        case .closing: return "@rest, doors closing"
-
+        case .movingUp:   return "moving up"
+        case .opening:    return "@rest, doors opening"
+        case .closing:    return "@rest, doors closing"
         }
     }
 }

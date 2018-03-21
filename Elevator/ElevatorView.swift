@@ -2,8 +2,11 @@ import UIKit
 
 public class ElevatorView : UIView, ElevatorObserver {
     
-    private let numberOfFloors: Int
-    private var elevator: Elevator
+    public private(set) var elevator: Elevator
+    
+    public var numberOfFloors: Int {
+        return elevator.floorBounds.upper - elevator.floorBounds.lower
+    }
     
     private var elevatorLayer = CALayer()
     private var doorLayer = CALayer()
@@ -17,7 +20,7 @@ public class ElevatorView : UIView, ElevatorObserver {
     
     public init(_ elevator: Elevator) {
         self.elevator = elevator
-        self.numberOfFloors = elevator.floorBounds.upper - elevator.floorBounds.lower
+        
         super.init(frame: CGRect())
         
         self.createFloors()
@@ -73,13 +76,6 @@ public class ElevatorView : UIView, ElevatorObserver {
             newPassenger.backgroundColor = UIColor.black.cgColor
             self.passengers.append(newPassenger)
             self.elevatorLayer.addSublayer(newPassenger)
-            
-//            let anim = CABasicAnimation(keyPath: "bounds")
-//            anim.timingFunction = CAMediaTimingFunction(name: kCAMediaTimingFunctionEaseIn)
-//            anim.fromValue = CGRect.zero
-//            anim.toValue = CGRect(origin: CGPoint.zero, size: newPassenger.frame.size)
-//            anim.duration = 2
-//            newPassenger.add(anim, forKey: "bounds")
         }
     }
     

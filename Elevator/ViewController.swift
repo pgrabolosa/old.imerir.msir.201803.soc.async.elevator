@@ -8,55 +8,62 @@
 
 import UIKit
 
-class ViewController: UIViewController {
+class ViewController: UIViewController, ElevatorObserver {
     
-    let elevator = Elevator()
-    let op = OperationQueue()
+    var target = 3
     
-//    func moveUp() -> Promise {
-//        let p = Promise()
-//
-//        op.addOperation {
-//            try! self.elevator.move(.up)
-//            self.elevator.waitForIdle()
-//            p.resolve(as: .success)
-//        }
-//
-//        return p
-//    }
-
-
+    func update() {
+        if elevator.state == .opened {
+            try! elevator.closeDoors()
+        } else if elevator.currentFloor == target {
+            try! elevator.openDoors()
+        } else if elevator.currentFloor > target {
+            try! elevator.move(.down)
+        } else if elevator.currentFloor < target {
+            try! elevator.move(.up)
+        }
+    }
+    
     override func loadView() {
+        let elevator = Elevator()
+        elevator.observer = self
+        
+        // the elevator will be retained by the ElevatorView
         self.view = ElevatorView(elevator)
     }
     
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
+        override func viewDidLoad() {
+        super.viewDidLoad()
+        view.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(tapped)))
+    }
+    
+    @objc func tapped() {
+        let ac = UIAlertController(title: "Call", message: "To which floor?", preferredStyle: .alert)
+        
+        ac.addTextField { $0.placeholder = "Floor number" }
+        ac.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
+        ac.addAction(UIAlertAction(title: "Go", style: .default, handler: { _ in
+            self.target = Int(ac.textFields![0].text!)!
+            self.update()
+        }))
+        
+        present(ac, animated: true, completion: nil)
+    }
+    
+    var elevatorView: ElevatorView { return self.view as! ElevatorView }
+    var elevator : Elevator { return self.elevatorView.elevator }
 
-         op.addOperation {
-             try! self.elevator.move(.up)
-             self.elevator.waitForIdle()
-             try! self.elevator.openDoors()
-             self.elevator.waitForIdle()
-             try! self.elevator.loadPassengers(3)
-             try! self.elevator.closeDoors()
-             self.elevator.waitForIdle()
-             try! self.elevator.move(.up)
-             self.elevator.waitForIdle()
-             try! self.elevator.openDoors()
-             self.elevator.waitForIdle()
-             try! self.elevator.unloadPassengers(3)
-             self.elevator.waitForIdle()
-             try! self.elevator.closeDoors()
-             self.elevator.waitForIdle()
-         }
+    func elevatorDidOpenDoor(_ elevator: Elevator) {
+        print("Reached target")
+    }
+    
+    func elevatorDidCloseDoor(_ elevator: Elevator) {
+        update()
     }
 
-    override func didReceiveMemoryWarning() {
-        super.didReceiveMemoryWarning()
-        // Dispose of any resources that can be recreated.
+    func elevator(_ elevator: Elevator, didChangeFloorFrom from: Int, to: Int) {
+        update()
     }
-
-
+    
 }
 
