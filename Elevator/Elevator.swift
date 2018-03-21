@@ -26,29 +26,21 @@ public class Elevator : NSObject {
     }
     
     public func openDoors() throws {
-        try operate(finalState: .opened) {
-            self.willChangeValue(for: \.state)
-            
-            self.state = .opening
+        try operate(transient: .opening, final: .opened) {
             Thread.sleep(forTimeInterval: self.durations.opening)
-            
-            self.didChangeValue(for: \.state)
         }
     }
     
     public func closeDoors() throws {
-        try operate(validInitialState: .opened, finalState: .idle) {
-            self.willChangeValue(for: \.state)
-            
-            self.state = .closing
+        try operate(required: .opened, transient: .closing, final: .idle) {
             Thread.sleep(forTimeInterval: self.durations.closing)
-            
-            self.didChangeValue(for: \.state)
         }
     }
     
     public func move(_ direction: Direction) throws {
-        try operate {
+        let state: ElevatorState = direction == .up ? .movingUp : .movingDown
+        
+        try operate(transient: state) {
             let destination = self.currentFloor + direction.rawValue
             
             guard self.floorBounds.lower <= destination && destination <= self.floorBounds.upper else {
@@ -56,24 +48,18 @@ public class Elevator : NSObject {
             }
             
             self.willChangeValue(for: \.currentFloor)
-            self.willChangeValue(for: \.state)
-            
             if destination > self.currentFloor {
-                self.state = .movingUp
                 Thread.sleep(forTimeInterval: self.durations.movingUp)
             } else {
-                self.state = .movingDown
                 Thread.sleep(forTimeInterval: self.durations.movingDown)
             }
             self.currentFloor = destination
-            
-            self.didChangeValue(for: \.state)
             self.didChangeValue(for: \.currentFloor)
         }
     }
     
     public func loadPassengers(_ count: Int) throws {
-        try operate(validInitialState: .opened, finalState: .opened) {
+        try operate(required: .opened, transient: .opened, final: .opened) {
             for _ in 0..<count {
                 self.willChangeValue(for: \.load)
                 
@@ -88,7 +74,7 @@ public class Elevator : NSObject {
     }
     
     public func unloadPassengers(_ count: Int) throws {
-        try operate(validInitialState: .opened, finalState: .opened) {
+        try operate(required: .opened, transient: .opened, final: .opened) {
             for _ in 0..<count {
                 if self.load - 1 >= 0 {
                     self.willChangeValue(for: \.load)
@@ -102,15 +88,22 @@ public class Elevator : NSObject {
         }
     }
     
-    private func operate(validInitialState: ElevatorState = .idle, finalState: ElevatorState = .idle, _ action: @escaping () throws -> Void) throws {
+    private func operate(required: ElevatorState = .idle, transient: ElevatorState, final: ElevatorState = .idle, _ action: @escaping () throws -> Void) throws {
         try lock.sync {
-            guard validInitialState == self.state else {
+            guard required == self.state else {
                 throw ElevatorError.cannotOperateUnderCurrentState
             }
             
+            self.willChangeValue(for: \Elevator.state)
+            self.state = transient
+            self.didChangeValue(for: \Elevator.state)
+            
             q.addOperation {
                 try! action()
-                self.state = finalState
+                
+                self.willChangeValue(for: \Elevator.state)
+                self.state = final
+                self.didChangeValue(for: \Elevator.state)
             }
         }
     }
