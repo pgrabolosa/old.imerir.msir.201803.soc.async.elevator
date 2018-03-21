@@ -40,15 +40,19 @@ public class ElevatorView : UIView, ElevatorObserver {
                 self.closedDoors()
             case .opened:
                 self.openedDoors()
-            case .movingDown:
-                self.moveDown()
-            case .movingUp:
-                self.moveUp()
             case .opening:
                 self.openingDoors()
             case .closing:
                 self.closingDoors()
+            case .movingDown:
+                break
+            case .movingUp:
+                break
             }
+        }
+        
+        onFloorToken = self.elevator.observe(\Elevator.state) { (elevator, change) in
+            self.moveToCurrentFloor()
         }
     }
     
@@ -104,19 +108,7 @@ public class ElevatorView : UIView, ElevatorObserver {
         }
     }
     
-    func moveUp() {
-        DispatchQueue.main.async {
-            CATransaction.begin()
-            CATransaction.setAnimationDuration(2)
-            
-            let newLevel = self.elevator.currentFloor
-            self.elevatorLayer.frame = self.floors[newLevel].frame
-            
-            CATransaction.commit()
-        }
-    }
-    
-    func moveDown() {
+    func moveToCurrentFloor() {
         DispatchQueue.main.async {
             CATransaction.begin()
             CATransaction.setAnimationDuration(2)
