@@ -10,9 +10,11 @@ import UIKit
 
 class ViewController: UIViewController, ElevatorObserver {
     
-    var target = 3
+    var target: [Elevator:Int] = [:]
     
     func update(_ elevator: Elevator) {
+        let target = self.target[elevator]!
+        
         if elevator.state == .opened {
             elevator.closeDoors().then { self.update(elevator) }
         } else if elevator.currentFloor == target {
@@ -56,7 +58,7 @@ class ViewController: UIViewController, ElevatorObserver {
         ac.addTextField { $0.placeholder = "Floor number" }
         ac.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
         ac.addAction(UIAlertAction(title: "Go", style: .default, handler: { _ in
-            self.target = Int(ac.textFields![0].text!)!
+            self.target[elevator] = Int(ac.textFields![0].text!)!
             self.update(elevator)
         }))
         
