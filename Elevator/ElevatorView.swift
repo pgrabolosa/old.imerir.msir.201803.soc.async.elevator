@@ -20,8 +20,9 @@ public class ElevatorView : UIView, ElevatorObserver {
     
     public init(_ elevator: Elevator) {
         self.elevator = elevator
-        
         super.init(frame: CGRect())
+        
+        self.elevator.observers.append(self)
         
         self.createFloors()
         self.elevatorLayer.backgroundColor = UIColor.cyan.cgColor
@@ -29,6 +30,7 @@ public class ElevatorView : UIView, ElevatorObserver {
         self.elevatorLayer.addSublayer(self.doorLayer)
         self.layer.addSublayer(elevatorLayer)
         
+        /*
         onLoadToken = self.elevator.observe(\Elevator.load) { (elevator, change) in
             if self.passengers.count > elevator.load {
                 self.removePassenger()
@@ -57,6 +59,27 @@ public class ElevatorView : UIView, ElevatorObserver {
         onFloorToken = self.elevator.observe(\Elevator.state) { (elevator, change) in
             self.moveToCurrentFloor()
         }
+         */
+    }
+    
+    public func elevator(_ elevator: Elevator, didChangeLoadFrom from: Int, to: Int) {
+        if self.passengers.count > elevator.load {
+            self.removePassenger()
+        } else if self.passengers.count < elevator.load {
+            self.addPassenger()
+        }
+    }
+    
+    public func elevator(_ elevator: Elevator, didChangeFloorFrom from: Int, to: Int) {
+        self.moveToCurrentFloor()
+    }
+    
+    public func elevatorDidOpenDoor(_ elevator: Elevator) {
+        self.openingDoors()
+    }
+    
+    public func elevatorDidCloseDoor(_ elevator: Elevator) {
+        self.closingDoors()
     }
     
     public required init?(coder aDecoder: NSCoder) {

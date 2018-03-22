@@ -7,9 +7,12 @@
 //
 
 import UIKit
+import RxSwift
 
 class ViewController: UIViewController, ElevatorObserver {
     
+    let numberOfElevators = 5
+    var elevators: [Elevator] = []
     var target: [Elevator:Int] = [:]
     
     func update(_ elevator: Elevator) {
@@ -28,30 +31,52 @@ class ViewController: UIViewController, ElevatorObserver {
         }
     }
     
+    var sameFloorSubscription: Disposable?
+    
     override func loadView() {
-        let left = ElevatorView(Elevator())
-        let right = ElevatorView(Elevator())
-        let stack = UIStackView(arrangedSubviews: [left, right])
+        var views = [ElevatorView]()
+        elevators = []
         
+        for _ in 0..<numberOfElevators {
+            let e = Elevator()
+            let v = ElevatorView(e)
+            
+            v.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(tapped(_:))))
+            
+            elevators.append(e)
+            views.append(v)
+        }
+        
+        let stack = UIStackView(arrangedSubviews: views)
         stack.axis = .horizontal
         stack.distribution = .fillEqually
+        
+        sameFloorSubscription = Observable.combineLatest(
+            elevators.map { $0.rx.currentFloor.asObservable() }
+        ).map { (floors: [Int]) -> Int? in
+            let reference = floors.first!
+            for floor in floors {
+                if floor != reference {
+                    return nil
+                }
+            }
+            return reference
+        }.distinctUntilChanged { $0 == $1 }.subscribe(onNext: { value in
+            if let floor = value {
+                print("Same floor: \(floor)")
+            } else {
+                print("Not the same floor")
+            }
+        })
         
         self.view = stack
     }
     
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        leftElevatorView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(tapped(_:))))
-        rightElevatorView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(tapped(_:))))
-    }
-    
     @objc func tapped(_ sender: UITapGestureRecognizer) {
-        let elevator: Elevator
-        if sender.view === leftElevatorView {
-            elevator = leftElevator
-        } else {
-            elevator = rightElevator
+        guard let view = sender.view as? ElevatorView else {
+            return
         }
+        let elevator = view.elevator
         
         let ac = UIAlertController(title: "Call", message: "To which floor?", preferredStyle: .alert)
         
@@ -64,12 +89,6 @@ class ViewController: UIViewController, ElevatorObserver {
         
         present(ac, animated: true, completion: nil)
     }
-    
-    var leftElevatorView: ElevatorView { return (self.view as! UIStackView).arrangedSubviews[0] as! ElevatorView }
-    var leftElevator : Elevator { return self.leftElevatorView.elevator }
-    
-    var rightElevatorView: ElevatorView { return (self.view as! UIStackView).arrangedSubviews[1] as! ElevatorView }
-    var rightElevator : Elevator { return self.rightElevatorView.elevator }
     
     /*
     func elevator(_ elevator: Elevator, didChangeFloorFrom from: Int, to: Int) {

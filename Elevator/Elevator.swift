@@ -1,4 +1,5 @@
 import Foundation.NSOperation
+import RxSwift
 
 public protocol ElevatorLike {
     @discardableResult func move(_ direction: Direction) -> Promise
@@ -11,7 +12,7 @@ public protocol ElevatorLike {
 
 @objcMembers
 public class Elevator : NSObject, ElevatorLike {
-    public var observer: ElevatorObserver?
+    public var observers: [ElevatorObserver] = []
     
     public private(set) var durations = ElevatorDurations()
     
@@ -43,10 +44,10 @@ public class Elevator : NSObject, ElevatorLike {
         
         do {
             try operate(transient: .opening, final: .opened) {
-                self.observer?.elevatorWillOpenDoor(self)
+                self.observers.forEach {$0.elevatorWillOpenDoor(self)}
                 Thread.sleep(forTimeInterval: self.durations.opening)
                 return {
-                    self.observer?.elevatorDidOpenDoor(self)
+                    self.observers.forEach {$0.elevatorDidOpenDoor(self)}
                     promise.resolve(with: .success)
                 }
             }
@@ -64,10 +65,10 @@ public class Elevator : NSObject, ElevatorLike {
         
         do {
             try operate(required: .opened, transient: .closing, final: .idle) {
-                self.observer?.elevatorWillCloseDoor(self)
+                self.observers.forEach {$0.elevatorWillCloseDoor(self)}
                 Thread.sleep(forTimeInterval: self.durations.closing)
                 return {
-                    self.observer?.elevatorDidCloseDoor(self)
+                    self.observers.forEach {$0.elevatorDidCloseDoor(self)}
                     promise.resolve(with: .success)
                 }
             }
@@ -95,7 +96,7 @@ public class Elevator : NSObject, ElevatorLike {
                 }
                 
                 self.willChangeValue(for: \.currentFloor)
-                self.observer?.elevator(self, willChangeFloorFrom: origin, to: destination)
+                self.observers.forEach {$0.elevator(self, willChangeFloorFrom: origin, to: destination)}
                 
                 let sleepDuration = destination > self.currentFloor ?
                     self.durations.movingUp :
@@ -105,7 +106,7 @@ public class Elevator : NSObject, ElevatorLike {
                 self.currentFloor = destination
                 
                 return {
-                    self.observer?.elevator(self, didChangeFloorFrom: origin, to: destination)
+                    self.observers.forEach {$0.elevator(self, didChangeFloorFrom: origin, to: destination)}
                     self.didChangeValue(for: \.currentFloor)
                     promise.resolve(with: .success)
                 }
@@ -127,15 +128,15 @@ public class Elevator : NSObject, ElevatorLike {
                     let newValue = oldValue + 1
                     
                     self.willChangeValue(for: \.load)
-                    self.observer?.elevator(self, willChangeLoadFrom: oldValue, to: newValue)
+                    self.observers.forEach {$0.elevator(self, willChangeLoadFrom: oldValue, to: newValue)}
                     
                     Thread.sleep(forTimeInterval: self.durations.loading)
-                    if self.load + 1 > self.maximumLoad {
+                    if (self.load + 1) > self.maximumLoad {
                         throw ElevatorError.reachedMaxLoad
                     }
                     self.load += 1
                     
-                    self.observer?.elevator(self, didChangeLoadFrom: oldValue, to: newValue)
+                    self.observers.forEach {$0.elevator(self, didChangeLoadFrom: oldValue, to: newValue)}
                     self.didChangeValue(for: \.load)
                     
                 }
@@ -161,12 +162,12 @@ public class Elevator : NSObject, ElevatorLike {
                         let newValue = oldValue + 1
                         
                         self.willChangeValue(for: \.load)
-                        self.observer?.elevator(self, willChangeLoadFrom: oldValue, to: newValue)
+                        self.observers.forEach {$0.elevator(self, willChangeLoadFrom: oldValue, to: newValue)}
 
                         Thread.sleep(forTimeInterval: self.durations.unloading)
                         self.load -= 1
                         
-                        self.observer?.elevator(self, didChangeLoadFrom: oldValue, to: newValue)
+                        self.observers.forEach {$0.elevator(self, didChangeLoadFrom: oldValue, to: newValue)}
                         self.didChangeValue(for: \.load)
                     }
                 }
@@ -202,3 +203,4 @@ public class Elevator : NSObject, ElevatorLike {
         }
     }
 }
+
