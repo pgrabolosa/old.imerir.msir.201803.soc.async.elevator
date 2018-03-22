@@ -14,25 +14,23 @@ class ViewController: UIViewController, ElevatorObserver {
     
     func update() {
         if elevator.state == .opened {
-            try! elevator.closeDoors()
+            elevator.closeDoors().then(update)
         } else if elevator.currentFloor == target {
-            try! elevator.openDoors()
+            elevator.openDoors()
         } else if elevator.currentFloor > target {
-            try! elevator.move(.down)
+            elevator.move(.down).then(update)
         } else if elevator.currentFloor < target {
-            try! elevator.move(.up)
+            elevator.move(.up).then(update).onError {
+                print("Reached heaven")
+            }
         }
     }
     
     override func loadView() {
-        let elevator = Elevator()
-        elevator.observer = self
-        
-        // the elevator will be retained by the ElevatorView
-        self.view = ElevatorView(elevator)
+        self.view = ElevatorView(Elevator())
     }
     
-        override func viewDidLoad() {
+    override func viewDidLoad() {
         super.viewDidLoad()
         view.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(tapped)))
     }
@@ -52,18 +50,19 @@ class ViewController: UIViewController, ElevatorObserver {
     
     var elevatorView: ElevatorView { return self.view as! ElevatorView }
     var elevator : Elevator { return self.elevatorView.elevator }
-
-    func elevatorDidOpenDoor(_ elevator: Elevator) {
-        print("Reached target")
+    
+    /*
+    func elevator(_ elevator: Elevator, didChangeFloorFrom from: Int, to: Int) {
+        update()
     }
     
     func elevatorDidCloseDoor(_ elevator: Elevator) {
         update()
     }
-
-    func elevator(_ elevator: Elevator, didChangeFloorFrom from: Int, to: Int) {
-        update()
-    }
     
+    func elevatorDidOpenDoor(_ elevator: Elevator) {
+        print("Reached destination")
+    }
+     */
 }
 

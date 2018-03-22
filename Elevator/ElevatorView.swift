@@ -106,13 +106,15 @@ public class ElevatorView : UIView, ElevatorObserver {
     
     func moveToCurrentFloor() {
         DispatchQueue.main.async {
-            CATransaction.begin()
-            CATransaction.setAnimationDuration(2)
-            
             let newLevel = self.elevator.currentFloor
-            self.elevatorLayer.frame = self.floors[newLevel].frame
-            
-            CATransaction.commit()
+            if 0 <= newLevel && newLevel < self.floors.count {
+                CATransaction.begin()
+                CATransaction.setAnimationDuration(2)
+
+                self.elevatorLayer.frame = self.floors[newLevel].frame
+                
+                CATransaction.commit()
+            }
         }
     }
     

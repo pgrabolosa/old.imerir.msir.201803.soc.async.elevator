@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		8FA02C34205FCA2D0050D104 /* Passenger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FA02C33205FCA2D0050D104 /* Passenger.swift */; };
+		8FD7733A20638E49008C0542 /* Promise.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FD7733920638E49008C0542 /* Promise.swift */; };
 		8FDFBE26205F11A100683C61 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FDFBE25205F11A100683C61 /* AppDelegate.swift */; };
 		8FDFBE28205F11A100683C61 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FDFBE27205F11A100683C61 /* ViewController.swift */; };
 		8FDFBE2B205F11A100683C61 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 8FDFBE29205F11A100683C61 /* Main.storyboard */; };
@@ -25,6 +26,7 @@
 
 /* Begin PBXFileReference section */
 		8FA02C33205FCA2D0050D104 /* Passenger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Passenger.swift; sourceTree = "<group>"; };
+		8FD7733920638E49008C0542 /* Promise.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Promise.swift; sourceTree = "<group>"; };
 		8FDFBE22205F11A100683C61 /* Elevator.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Elevator.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		8FDFBE25205F11A100683C61 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		8FDFBE27205F11A100683C61 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -87,6 +89,7 @@
 				8FDFBE2C205F11A300683C61 /* Assets.xcassets */,
 				8FDFBE2E205F11A300683C61 /* LaunchScreen.storyboard */,
 				8FDFBE31205F11A300683C61 /* Info.plist */,
+				8FD7733920638E49008C0542 /* Promise.swift */,
 			);
 			path = Elevator;
 			sourceTree = "<group>";
@@ -124,6 +127,11 @@
 					8FDFBE21205F11A000683C61 = {
 						CreatedOnToolsVersion = 9.3;
 						ProvisioningStyle = Automatic;
+						SystemCapabilities = {
+							com.apple.Siri = {
+								enabled = 1;
+							};
+						};
 					};
 				};
 			};
@@ -174,6 +182,7 @@
 				8FDFBE3A205F11E100683C61 /* ElevatorError.swift in Sources */,
 				8FDFBE38205F11D400683C61 /* Direction.swift in Sources */,
 				8FDFBE44205F126300683C61 /* Elevator.swift in Sources */,
+				8FD7733A20638E49008C0542 /* Promise.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -316,7 +325,9 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Elevator/Elevator.entitlements;
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 8BNRNG4PCS;
 				INFOPLIST_FILE = Elevator/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = fr.grabolosa.Elevator;
@@ -330,7 +341,9 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Elevator/Elevator.entitlements;
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 8BNRNG4PCS;
 				INFOPLIST_FILE = Elevator/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = fr.grabolosa.Elevator;

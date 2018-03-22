@@ -1,7 +1,16 @@
 import Foundation.NSOperation
 
+public protocol ElevatorLike {
+    @discardableResult func move(_ direction: Direction) -> Promise
+    @discardableResult func openDoors() -> Promise
+    @discardableResult func closeDoors() -> Promise
+    @discardableResult func loadPassengers(_ count: Int) -> Promise
+    @discardableResult func unloadPassengers(_ count: Int) -> Promise
+}
+
+
 @objcMembers
-public class Elevator : NSObject {
+public class Elevator : NSObject, ElevatorLike {
     public var observer: ElevatorObserver?
     
     public private(set) var durations = ElevatorDurations()
@@ -28,92 +37,147 @@ public class Elevator : NSObject {
         assert(state == .idle)
     }
     
-    public func openDoors() throws {
-        try operate(transient: .opening, final: .opened) {
-            self.observer?.elevatorWillOpenDoor(self)
-            Thread.sleep(forTimeInterval: self.durations.opening)
-            return { self.observer?.elevatorDidOpenDoor(self) }
-        }
-    }
-    
-    public func closeDoors() throws {
-        try operate(required: .opened, transient: .closing, final: .idle) {
-            self.observer?.elevatorWillCloseDoor(self)
-            Thread.sleep(forTimeInterval: self.durations.closing)
-            return { self.observer?.elevatorDidCloseDoor(self) }
-        }
-    }
-    
-    public func move(_ direction: Direction) throws {
-        let state: ElevatorState = direction == .up ? .movingUp : .movingDown
+    @discardableResult
+    public func openDoors() -> Promise {
+        let promise = Promise()
         
-        try operate(transient: state) {
-            let origin = self.currentFloor
-            let destination = self.currentFloor + direction.rawValue
-            
-            guard self.floorBounds.lower <= destination && destination <= self.floorBounds.upper else {
-                throw ElevatorError.unreachableDestination
-            }
-            
-            self.willChangeValue(for: \.currentFloor)
-            self.observer?.elevator(self, willChangeFloorFrom: origin, to: destination)
-            
-            let sleepDuration = destination > self.currentFloor ?
-                self.durations.movingUp :
-                self.durations.movingDown
-            Thread.sleep(forTimeInterval: sleepDuration)
-            
-            self.currentFloor = destination
-            
-            return {
-                self.observer?.elevator(self, didChangeFloorFrom: origin, to: destination)
-                self.didChangeValue(for: \.currentFloor)
-            }
-        }
-    }
-    
-    public func loadPassengers(_ count: Int) throws {
-        try operate(required: .opened, transient: .opened, final: .opened) {
-            for _ in 0..<count {
-                let oldValue = self.load
-                let newValue = oldValue + 1
-                
-                self.willChangeValue(for: \.load)
-                self.observer?.elevator(self, willChangeLoadFrom: oldValue, to: newValue)
-                
-                Thread.sleep(forTimeInterval: self.durations.loading)
-                if self.load + 1 > self.maximumLoad {
-                    throw ElevatorError.reachedMaxLoad
+        do {
+            try operate(transient: .opening, final: .opened) {
+                self.observer?.elevatorWillOpenDoor(self)
+                Thread.sleep(forTimeInterval: self.durations.opening)
+                return {
+                    self.observer?.elevatorDidOpenDoor(self)
+                    promise.resolve(with: .success)
                 }
-                self.load += 1
-                
-                self.observer?.elevator(self, didChangeLoadFrom: oldValue, to: newValue)
-                self.didChangeValue(for: \.load)
-                
             }
-            return nil
+        } catch {
+            print(error)
+            promise.resolve(with: .error)
         }
+        
+        return promise
     }
     
-    public func unloadPassengers(_ count: Int) throws {
-        try operate(required: .opened, transient: .opened, final: .opened) {
-            for _ in 0..<count {
-                if self.load - 1 >= 0 {
+    @discardableResult
+    public func closeDoors() -> Promise {
+        let promise = Promise()
+        
+        do {
+            try operate(required: .opened, transient: .closing, final: .idle) {
+                self.observer?.elevatorWillCloseDoor(self)
+                Thread.sleep(forTimeInterval: self.durations.closing)
+                return {
+                    self.observer?.elevatorDidCloseDoor(self)
+                    promise.resolve(with: .success)
+                }
+            }
+        } catch {
+            print(error)
+            promise.resolve(with: .error)
+        }
+        
+        return promise
+    }
+    
+    @discardableResult
+    public func move(_ direction: Direction) -> Promise {
+        let state: ElevatorState = direction == .up ? .movingUp : .movingDown
+        let promise = Promise()
+        
+        do {
+            try operate(transient: state) {
+                let origin = self.currentFloor
+                let destination = self.currentFloor + direction.rawValue
+                
+                guard self.floorBounds.lower <= destination && destination <= self.floorBounds.upper else {
+                    promise.resolve(with: .error)
+                    throw ElevatorError.unreachableDestination
+                }
+                
+                self.willChangeValue(for: \.currentFloor)
+                self.observer?.elevator(self, willChangeFloorFrom: origin, to: destination)
+                
+                let sleepDuration = destination > self.currentFloor ?
+                    self.durations.movingUp :
+                    self.durations.movingDown
+                Thread.sleep(forTimeInterval: sleepDuration)
+                
+                self.currentFloor = destination
+                
+                return {
+                    self.observer?.elevator(self, didChangeFloorFrom: origin, to: destination)
+                    self.didChangeValue(for: \.currentFloor)
+                    promise.resolve(with: .success)
+                }
+            }
+        } catch {
+            print(error)
+            promise.resolve(with: .error)
+        }
+        return promise
+    }
+    
+    @discardableResult
+    public func loadPassengers(_ count: Int) -> Promise {
+        let promise = Promise()
+        do {
+            try operate(required: .opened, transient: .opened, final: .opened) {
+                for _ in 0..<count {
                     let oldValue = self.load
                     let newValue = oldValue + 1
                     
                     self.willChangeValue(for: \.load)
                     self.observer?.elevator(self, willChangeLoadFrom: oldValue, to: newValue)
-
-                    Thread.sleep(forTimeInterval: self.durations.unloading)
-                    self.load -= 1
+                    
+                    Thread.sleep(forTimeInterval: self.durations.loading)
+                    if self.load + 1 > self.maximumLoad {
+                        throw ElevatorError.reachedMaxLoad
+                    }
+                    self.load += 1
                     
                     self.observer?.elevator(self, didChangeLoadFrom: oldValue, to: newValue)
                     self.didChangeValue(for: \.load)
+                    
                 }
+                promise.resolve(with: .success)
+                return nil
             }
-            return nil
+        } catch {
+            print(error)
+            promise.resolve(with: .error)
         }
+        return promise
+    }
+    
+    @discardableResult
+    public func unloadPassengers(_ count: Int) -> Promise {
+        let promise = Promise()
+        
+        do {
+            try operate(required: .opened, transient: .opened, final: .opened) {
+                for _ in 0..<count {
+                    if self.load - 1 >= 0 {
+                        let oldValue = self.load
+                        let newValue = oldValue + 1
+                        
+                        self.willChangeValue(for: \.load)
+                        self.observer?.elevator(self, willChangeLoadFrom: oldValue, to: newValue)
+
+                        Thread.sleep(forTimeInterval: self.durations.unloading)
+                        self.load -= 1
+                        
+                        self.observer?.elevator(self, didChangeLoadFrom: oldValue, to: newValue)
+                        self.didChangeValue(for: \.load)
+                    }
+                }
+                promise.resolve(with: .success)
+                return nil
+            }
+        } catch {
+            print(error)
+            promise.resolve(with: .error)
+        }
+        return promise
     }
     
     private func operate(required: ElevatorState = .idle, transient: ElevatorState, final: ElevatorState = .idle, _ action: @escaping () throws -> (() -> Void)?) throws {
