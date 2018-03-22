@@ -12,44 +12,62 @@ class ViewController: UIViewController, ElevatorObserver {
     
     var target = 3
     
-    func update() {
+    func update(_ elevator: Elevator) {
         if elevator.state == .opened {
-            elevator.closeDoors().then(update)
+            elevator.closeDoors().then { self.update(elevator) }
         } else if elevator.currentFloor == target {
             elevator.openDoors()
         } else if elevator.currentFloor > target {
-            elevator.move(.down).then(update)
+            elevator.move(.down).then { self.update(elevator) }
         } else if elevator.currentFloor < target {
-            elevator.move(.up).then(update).onError {
-                print("Reached heaven")
+            elevator.move(.up).then { self.update(elevator) }.onError {
+                print("Reached heaven… or hell?!")
             }
         }
     }
     
     override func loadView() {
-        self.view = ElevatorView(Elevator())
+        let left = ElevatorView(Elevator())
+        let right = ElevatorView(Elevator())
+        let stack = UIStackView(arrangedSubviews: [left, right])
+        
+        stack.axis = .horizontal
+        stack.distribution = .fillEqually
+        
+        self.view = stack
     }
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(tapped)))
+        leftElevatorView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(tapped(_:))))
+        rightElevatorView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(tapped(_:))))
     }
     
-    @objc func tapped() {
+    @objc func tapped(_ sender: UITapGestureRecognizer) {
+        let elevator: Elevator
+        if sender.view === leftElevatorView {
+            elevator = leftElevator
+        } else {
+            elevator = rightElevator
+        }
+        
         let ac = UIAlertController(title: "Call", message: "To which floor?", preferredStyle: .alert)
         
         ac.addTextField { $0.placeholder = "Floor number" }
         ac.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
         ac.addAction(UIAlertAction(title: "Go", style: .default, handler: { _ in
             self.target = Int(ac.textFields![0].text!)!
-            self.update()
+            self.update(elevator)
         }))
         
         present(ac, animated: true, completion: nil)
     }
     
-    var elevatorView: ElevatorView { return self.view as! ElevatorView }
-    var elevator : Elevator { return self.elevatorView.elevator }
+    var leftElevatorView: ElevatorView { return (self.view as! UIStackView).arrangedSubviews[0] as! ElevatorView }
+    var leftElevator : Elevator { return self.leftElevatorView.elevator }
+    
+    var rightElevatorView: ElevatorView { return (self.view as! UIStackView).arrangedSubviews[1] as! ElevatorView }
+    var rightElevator : Elevator { return self.rightElevatorView.elevator }
     
     /*
     func elevator(_ elevator: Elevator, didChangeFloorFrom from: Int, to: Int) {

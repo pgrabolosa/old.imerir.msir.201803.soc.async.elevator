@@ -129,7 +129,7 @@
 						ProvisioningStyle = Automatic;
 						SystemCapabilities = {
 							com.apple.Siri = {
-								enabled = 1;
+								enabled = 0;
 							};
 						};
 					};
@@ -325,7 +325,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = Elevator/Elevator.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 8BNRNG4PCS;
 				INFOPLIST_FILE = Elevator/Info.plist;
@@ -341,7 +340,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = Elevator/Elevator.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 8BNRNG4PCS;
 				INFOPLIST_FILE = Elevator/Info.plist;
