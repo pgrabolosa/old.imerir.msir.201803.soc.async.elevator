@@ -1,6 +1,6 @@
 import UIKit
 
-public class ElevatorView : UIView, ElevatorObserver {
+public class ElevatorView : UIView {
     
     public private(set) var elevator: Elevator
     
@@ -22,16 +22,13 @@ public class ElevatorView : UIView, ElevatorObserver {
         self.elevator = elevator
         super.init(frame: CGRect())
         
-        self.elevator.observers.append(self)
-        
         self.createFloors()
-        self.elevatorLayer.backgroundColor = UIColor.cyan.cgColor
-        self.doorLayer.backgroundColor = UIColor.darkGray.cgColor
+        self.elevatorLayer.backgroundColor = UIColor.darkGray.cgColor
+        self.doorLayer.backgroundColor = UIColor.cyan.cgColor
         self.elevatorLayer.addSublayer(self.doorLayer)
         self.layer.addSublayer(elevatorLayer)
         
-        /*
-        onLoadToken = self.elevator.observe(\Elevator.load) { (elevator, change) in
+        onLoadToken = self.elevator.observe(\.load, options: [.old, .new]) { (elevator, _) in
             if self.passengers.count > elevator.load {
                 self.removePassenger()
             } else if self.passengers.count < elevator.load {
@@ -39,47 +36,17 @@ public class ElevatorView : UIView, ElevatorObserver {
             }
         }
         
-        onStateToken = self.elevator.observe(\Elevator.state) { (elevator, change) in
-            switch elevator.state {
-            case .idle:
-                self.closedDoors()
-            case .opened:
-                self.openedDoors()
-            case .opening:
-                self.openingDoors()
-            case .closing:
-                self.closingDoors()
-            case .movingDown:
-                break
-            case .movingUp:
-                break
-            }
-        }
-        
-        onFloorToken = self.elevator.observe(\Elevator.state) { (elevator, change) in
+        onFloorToken = self.elevator.observe(\.currentFloor, options: [.old, .new]) { (_, _) in
             self.moveToCurrentFloor()
         }
-         */
-    }
-    
-    public func elevator(_ elevator: Elevator, didChangeLoadFrom from: Int, to: Int) {
-        if self.passengers.count > elevator.load {
-            self.removePassenger()
-        } else if self.passengers.count < elevator.load {
-            self.addPassenger()
+        
+        onStateToken = self.elevator.observe(\.state, options: [.old, .new]) { (elevator, change) in
+            if elevator.state == .opening {
+                self.openingDoors()
+            } else if elevator.state == .closing {
+                self.closingDoors()
+            }
         }
-    }
-    
-    public func elevator(_ elevator: Elevator, didChangeFloorFrom from: Int, to: Int) {
-        self.moveToCurrentFloor()
-    }
-    
-    public func elevatorDidOpenDoor(_ elevator: Elevator) {
-        self.openingDoors()
-    }
-    
-    public func elevatorDidCloseDoor(_ elevator: Elevator) {
-        self.closingDoors()
     }
     
     public required init?(coder aDecoder: NSCoder) {
@@ -87,13 +54,13 @@ public class ElevatorView : UIView, ElevatorObserver {
     }
     
     func removePassenger() {
-        DispatchQueue.main.async {
+        animate {
             self.passengers.removeLast().removeFromSuperlayer()
         }
     }
     
     func addPassenger() {
-        DispatchQueue.main.async {
+        animate {
             let newPassenger = CALayer()
             newPassenger.frame = CGRect(origin: CGPoint(x: CGFloat(5 + ((25+5) * self.passengers.count)) , y: (self.elevatorLayer.bounds.height - 25)/2), size: CGSize(width: 25, height: 25))
             newPassenger.backgroundColor = UIColor.black.cgColor
@@ -102,28 +69,40 @@ public class ElevatorView : UIView, ElevatorObserver {
         }
     }
     
-    func closedDoors() {
-        DispatchQueue.main.async {
-            self.doorLayer.frame = self.elevatorLayer.bounds
-        }
-    }
-    
     func closingDoors() {
-        DispatchQueue.main.async {
-            self.doorLayer.frame = self.elevatorLayer.bounds
+        animate {
+            self.doorLayer.bounds.size.width = 0
         }
-    }
-    
-    func openedDoors() {
-        DispatchQueue.main.async {
-            self.doorLayer.bounds.size.height = 0
-        }
-            
     }
     
     func openingDoors() {
-        DispatchQueue.main.async {
-            self.doorLayer.bounds.size.height = 0
+        animate {
+            self.doorLayer.frame = self.elevatorLayer.bounds
+        }
+    }
+    
+    let animationQueue:OperationQueue = {
+        let oq = OperationQueue()
+        oq.maxConcurrentOperationCount = 1
+        return oq
+    }()
+    
+    private func animate(_ animation: @escaping ()->Void) {
+        animationQueue.addOperation {
+            //self.animationQueue.waitUntilAllOperationsAreFinished()
+            let semaphore = DispatchSemaphore(value: 0)
+            DispatchQueue.main.sync {
+                CATransaction.begin()
+                CATransaction.setAnimationDuration(2)
+                CATransaction.setCompletionBlock {
+                    semaphore.signal()
+                }
+                
+                animation()
+                
+                CATransaction.commit()
+            }
+            semaphore.wait()
         }
     }
     
@@ -131,10 +110,9 @@ public class ElevatorView : UIView, ElevatorObserver {
         DispatchQueue.main.async {
             let newLevel = self.elevator.currentFloor
             if 0 <= newLevel && newLevel < self.floors.count {
-                CATransaction.begin()
-                CATransaction.setAnimationDuration(2)
-
-                self.elevatorLayer.frame = self.floors[newLevel].frame
+                self.animate {
+                    self.elevatorLayer.frame = self.floors[newLevel].frame
+                }
                 
                 CATransaction.commit()
             }
@@ -159,6 +137,7 @@ public class ElevatorView : UIView, ElevatorObserver {
         super.layoutSubviews()
         self.elevatorLayer.frame = floorFrame(at: elevator.currentFloor)
         self.doorLayer.frame = self.elevatorLayer.bounds
+        self.doorLayer.bounds.size.width = 0
         
         for (level, floor) in floors.enumerated() {
             floor.frame = floorFrame(at: level)
