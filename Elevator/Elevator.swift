@@ -192,13 +192,13 @@ public class Elevator : NSObject, ElevatorLike {
             self.didChangeValue(for: \Elevator.state)
             
             q.addOperation {
-                let completion = try! action()
-                
                 self.willChangeValue(for: \Elevator.state)
                 self.state = final
                 self.didChangeValue(for: \Elevator.state)
                 
-                completion?()
+                if let completion = try? action() {
+                    completion?()
+                }
             }
         }
     }
